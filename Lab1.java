@@ -16,10 +16,14 @@ public class Lab1 {
                 y = Double.parseDouble(args[i]);
             else if (i % 3 == 2)
                 z = Double.parseDouble(args[i]);
-            else if (i == 3)
+            else if (i == 3) {
                 first = new Point3d(x, y, z);
-            else
+                x = Double.parseDouble(args[i]);
+            }
+            else {
                 second = new Point3d(x, y, z);
+                x = Double.parseDouble(args[i]);
+            }
         }
         third = new Point3d(x, y, z);
         if (first.isEqual(second) || second.isEqual(third) || first.isEqual(third))
