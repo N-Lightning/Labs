@@ -11,12 +11,13 @@ import java.io.IOException;
 
 public class FractalExplorer
 {
-    private int screenSize;
+    private int screenSize, rowsRemaining;
     private JImageDisplay jImageDisplay;
     private FractalGenerator generator;
     private Rectangle2D.Double rectangle;
     private JFrame f;
     private JButton reset, save;
+    private JComboBox fractals;
 
     FractalExplorer(int size)
     {
@@ -47,7 +48,7 @@ public class FractalExplorer
 
         JPanel fractalBox = new JPanel();
         JLabel fractalLabel = new JLabel("Fractal: ");
-        JComboBox fractals = new JComboBox();
+        fractals = new JComboBox();
 
         fractals.addItem(new Mandelbrot());
         fractals.addItem(new Tricorn());
@@ -68,24 +69,14 @@ public class FractalExplorer
 
     private void drawFractal()
     {
-        for (int x = 0; x < screenSize; x++)
+        enableUI(false);
+        rowsRemaining = screenSize;
+        FractalWorker fractal;
+        for (int y = 0; y < screenSize; y++)
         {
-            for (int y = 0; y < screenSize; y++)
-            {
-                double xCoord = generator.getCoord(rectangle.x, rectangle.x + rectangle.width, screenSize, x);
-                double yCoord = generator.getCoord(rectangle.y, rectangle.y + rectangle.height, screenSize, y);
-                int num = generator.numIterations(xCoord, yCoord);
-                if (num == -1)
-                    jImageDisplay.drawPixel(x, y, 0);
-                else
-                {
-                    float hue = 0.7f + (float) num / 200f;
-                    int rgbColor = Color.HSBtoRGB(hue, 1f, 1f);
-                    jImageDisplay.drawPixel(x, y, rgbColor);
-                }
-            }
+            fractal = new FractalWorker(y);
+            fractal.execute();
         }
-        jImageDisplay.repaint();
     }
 
     public class ComboBoxHandler implements java.awt.event.ActionListener
@@ -149,13 +140,17 @@ public class FractalExplorer
     private class MouseHandler extends MouseAdapter
     {
         @Override
-        public void mouseClicked(MouseEvent e) {
-            int x = e.getX();
-            double xCoord = generator.getCoord(rectangle.x, rectangle.x + rectangle.width, screenSize, x);
-            int y = e.getY();
-            double yCoord = generator.getCoord(rectangle.y, rectangle.y + rectangle.height, screenSize, y);
-            generator.recenterAndZoomRange(rectangle, xCoord, yCoord, 0.5);
-            drawFractal();
+        public void mouseClicked(MouseEvent e)
+        {
+            if (rowsRemaining == 0)
+            {
+                int x = e.getX();
+                double xCoord = generator.getCoord(rectangle.x, rectangle.x + rectangle.width, screenSize, x);
+                int y = e.getY();
+                double yCoord = generator.getCoord(rectangle.y, rectangle.y + rectangle.height, screenSize, y);
+                generator.recenterAndZoomRange(rectangle, xCoord, yCoord, 0.5);
+                drawFractal();
+            }
         }
     }
 
@@ -163,5 +158,55 @@ public class FractalExplorer
         FractalExplorer fractal = new FractalExplorer(800);
         fractal.createAndShowGUI();
         fractal.drawFractal();
+    }
+
+    private class FractalWorker extends SwingWorker<Object, Object>
+    {
+        int y;
+        int[] rgb;
+        int rgbColor;
+        float hue;
+        FractalWorker(int y)
+        {
+            this.y = y;
+        }
+
+        @Override
+        protected Object doInBackground() throws Exception {
+            rgb = new int[screenSize];
+            for (int x = 0; x < screenSize; x++)
+            {
+                double xCoord = generator.getCoord(rectangle.x, rectangle.x + rectangle.width, screenSize, x);
+                double yCoord = generator.getCoord(rectangle.y, rectangle.y + rectangle.height, screenSize, y);
+                int num = generator.numIterations(xCoord, yCoord);
+                if (num == -1)
+                    rgb[x] = 0;
+                else
+                {
+                    hue = 0.7f + (float) num / 200f;
+                    rgbColor = Color.HSBtoRGB(hue, 1f, 1f);
+                    rgb[x] = rgbColor;
+                }
+            }
+            return null;
+        }
+
+        @Override
+        protected void done()
+        {
+            for (int x = 0; x < screenSize; x++)
+                jImageDisplay.drawPixel(x, y, rgb[x]);
+            jImageDisplay.repaint(0, 0, y, screenSize, 1);
+            rowsRemaining -= 1;
+            if (rowsRemaining < 1)
+                enableUI(true);
+        }
+    }
+
+    void enableUI(boolean val)
+    {
+        reset.setEnabled(val);
+        save.setEnabled(val);
+        fractals.setEnabled(val);
     }
 }
