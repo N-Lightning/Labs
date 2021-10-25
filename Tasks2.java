@@ -1,9 +1,5 @@
 public class Tasks2
 {
-    public static void main(String[] args) {
-        System.out.println(oppositeHouse(Integer.valueOf(args[0]), Integer.valueOf(args[1])));
-        System.out.println(nameShuffle(args[2] + " " + args[3]));
-    }
     static int oppositeHouse(int num, int length)
     {
         if (num % 2 == 0)
